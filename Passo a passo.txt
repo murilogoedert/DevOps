@@ -1,0 +1,82 @@
+======== JENKINS ========
+
+1 - Rodar os seguintes comandos no wsl:
+
+mkdir ~/jenkins_home
+sudo ln -s ~/jenkins_home /var
+sudo docker run -d -it -u root -p 8080:8080 -p 50000:50000 -v /var/run/docker.sock:/var/run/docker.sock -v $(which docker):/usr/bin/docker -v /var/jenkins_home:/var/jenkins_home --name jenkins jenkins/jenkins:lts
+
+2 - acessar http://localhost:8080
+
+3 - Vai pedir o código de acesso então rodar o seguinte no WSL:
+
+    1 - docker ps
+    1.1 - copiar o ID DO CONTAINER do jenkins
+    2 - docker exec -i <ID DO CONTAINER> /bin/bash  (vai ficar aguardando o proximo comando)
+    3 - cat /var/jenkins_home/secrets/initialAdminPassword
+    4 - copiar o hash que aparecer e colar na pagina do jenkins no campo que tem na tela
+    4.1 Pode dar 'exit' depois de copiar
+
+4 - Instalar as extenções recomendadas no jenkins
+
+5 - No Jenkins ir em "Gerenciar Jenkins" (menu da esquerda) >> Plugins >> Extensões disponíveis 
+
+5.1 - Instalar "NodeJs" e "Docker Pipeline" (Não precisa marcar pra reiniciar)
+
+6 - Após instalar as extenções, voltar para a pagina inicial do jenkins
+
+7 - + Nova Tarefa > De um nome pra tarefa (Ex: AppBackend), escolher a opção "Pipeline" e clicar em "Tudo Certo"
+7.1 - Descrição é opcional
+7.2 - Marcar "GitHub Project" e colar a url do repo (Ex: https://github.com/EpicChat/AppBackend.git)
+7.3 - Marcar "GitHub hook trigger for GITScm polling"
+7.4 - Em Pipeline selecionar "Pipeline script from SCM"
+7.5 - SCM selecionar Git
+7.6 - Repository URL colar de novo a url do repo
+7.7 - Clicar em +Add pra adicionar teu usuario e senha do github, selecionando "Jenkins":
+   7.7.1 - Em "Kind" manter "Username with Password"
+   7.7.2 - Em Username colocar teu nome de usuario do github
+   7.7.3 - Em password colocar tua senha
+   7.7.4 - Em id colocar um identificador da tua escolha pra poder selecionar facil nos locais que pede, coloquei "git_user_pass"
+   7.7.5 - Clicar em "Add"
+7.8 slelecionar a credencial recem criada em "Credentials" onde esta escrito "-none-"
+7.9 Clicar em "Salvar"
+
+======== NGROK ========
+1 - verificar que na pasta atual tem um executavel ngrok.exe
+2 - acessar a pasta localmente usando o terminal do windows e executar o seguinte:
+
+./ngrok.exe http 8080
+
+3 - Ao executar ele vai printar algumas informações na tela, o que intereça é um link parecido com o abaixo, copie esse link que vai ser usado na seção abaixo (GITHUB):
+
+https://76ac-2804-30c-d79-a800-d4d8-d2d-b51a-5ae4.ngrok-free.app
+
+4 - Enquanto rodando as pipes locais, manter essa janela do terminal aberta com o ngrok rodando.
+
+
+======== GITHUB ========
+
+Pro repositorio https://github.com/EpicChat/AppBackend.git ja esta feita a configuração do webhook no github, abaixo eu só vou documentar como que faz pra gente fazer nos demais.
+
+1 - Acessar o repositorio no github
+2 - Clicar em "Settings" (Engrenagem)
+3 - na esquerda selecionar "Webhooks"
+4 - Clicar em "Add Webhook"
+5 - Em "Payload URL" colar a url que copiou do NGROK + /github-webhook/   
+
+    EX: https://76ac-2804-30c-d79-a800-d4d8-d2d-b51a-5ae4.ngrok-free.app/github-webhook/
+
+6 - Mudar o content type para "application/json"
+7 - Manter o resto como esta e clicar em "Add Webhook" (Lembrando que deve ser mantido o ngrok rodando nesse momento)
+8 - Verificar que na janela do terminal do ngrok vai aparecer uma nova linha "POST /github-webhook/ 200 OK", se aparecer é por que deu liga.
+
+Depois disso tudo feito, testar se esta buildando:
+
+1 - Fazer um commit no repo e subir a alteração.
+2 - Verificar que uma nova linha vai aparecer no NGROK
+3 - No jenkins na pagina inicial clicar na tarefa que foi criada (No meu caso "AppBackend")
+4 - Na esquerda em baixo verificar que no "Historico de construções" uma nova build foi iniciada
+5 - Clicar na build que esta iniciando e depois clicar em "Console Output" na esquerda
+7 - Nessa tela da pra acompanhar cada passo da build
+8 - Ao final deve exibir uma mensagem "SUCCESS" no log, acessar http://localhost:3000 pra ver se a aplicação nest ta rodando, se sim de boa pra caralho!
+
